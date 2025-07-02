@@ -315,24 +315,26 @@
     function triggerWinSequence() {
       gameState.isWinning = true;
       
-      // Start blinking lights with different colors
+      // Start blinking lights with different random colors
       const colors = [lightColors.yellow, lightColors.red, lightColors.blue, lightColors.green];
-      let colorIndex = 0;
+      const blinkIntervals = [];
       
-      gameState.lightElements.forEach(light => {
+      gameState.lightElements.forEach((light, index) => {
         light.classList.add('blinking');
+        
+        // Give each light its own independent timer with slightly different intervals
+        const randomInterval = 600 + Math.random() * 400; // Between 600-1000ms
+        const interval = setInterval(() => {
+          const randomColor = colors[Math.floor(Math.random() * colors.length)];
+          light.src = randomColor;
+        }, randomInterval);
+        
+        blinkIntervals.push(interval);
       });
-
-      const blinkInterval = setInterval(() => {
-        gameState.lightElements.forEach(light => {
-          light.src = colors[colorIndex % colors.length];
-        });
-        colorIndex++;
-      }, 250);
 
       // Stop blinking after 3 seconds and show modal
       setTimeout(() => {
-        clearInterval(blinkInterval);
+        blinkIntervals.forEach(interval => clearInterval(interval));
         gameState.lightElements.forEach(light => {
           light.classList.remove('blinking');
           light.src = lightColors.green; // Set all to green
