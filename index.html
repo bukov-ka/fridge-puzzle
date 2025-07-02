@@ -1,0 +1,137 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Fridge Puzzle Game</title>
+  <style>
+    html, body {
+      height: 100%;
+      margin: 0;
+      padding: 0;
+      overflow: hidden;
+    }
+    body {
+      width: 100vw;
+      height: 100vh;
+      box-sizing: border-box;
+      background: #222;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+    }
+    #game-container {
+      position: absolute;
+      width: 1024px; /* Original fridge width */
+      height: 1536px; /* Original fridge height */
+      touch-action: none;
+      transform-origin: top left;
+    }
+    #fridge-bg {
+      width: 1024px;
+      height: 1536px;
+      display: block;
+      position: absolute;
+      left: 0;
+      top: 0;
+      z-index: 1;
+      pointer-events: none;
+      user-select: none;
+    }
+    .light, .handle {
+      position: absolute;
+      z-index: 2;
+      pointer-events: none;
+      user-select: none;
+    }
+    .light {
+      width: 111px;
+      height: 111px;
+    }
+    .handle {
+      width: 110px;
+      height: 110px;
+    }
+
+  </style>
+</head>
+<body>
+  <div id="game-container">
+    <img id="fridge-bg" src="images/fridge.png" alt="Fridge" draggable="false">
+    <!-- Lights and handles will be injected by JS -->
+  </div>
+  <script>
+    // Fridge image size
+    const FRIDGE_WIDTH = 1024;
+    const FRIDGE_HEIGHT = 1536;
+    // Light positions (center coordinates)
+    const lights = [
+      { x: 323, y: 484, img: 'images/light_red.png', alt: 'Red' },
+      { x: 413, y: 483, img: 'images/light_yellow.png', alt: 'Yellow' },
+      { x: 503, y: 482, img: 'images/light_green.png', alt: 'Green' },
+      { x: 594, y: 481, img: 'images/light_blue.png', alt: 'Blue' },
+    ];
+    // Handles grid (4x4)
+    const HANDLE_SIZE = 110; // px
+    const handleImages = [
+      'images/tap_horizontal.png',
+      'images/tap_vertical.png',
+    ];
+    // Top-left and bottom-right handle centers
+    const HANDLE_TOPLEFT = { x: 311, y: 666 };
+    const HANDLE_BOTTOMRIGHT = { x: 589, y: 1030 };
+    // Calculate handle positions
+    const handles = [];
+    for (let row = 0; row < 4; row++) {
+      for (let col = 0; col < 4; col++) {
+        // Linear interpolation between top-left and bottom-right
+        const x = HANDLE_TOPLEFT.x + (HANDLE_BOTTOMRIGHT.x - HANDLE_TOPLEFT.x) * (col / 3);
+        const y = HANDLE_TOPLEFT.y + (HANDLE_BOTTOMRIGHT.y - HANDLE_TOPLEFT.y) * (row / 3);
+        // Alternate handle orientation for demo (can be randomized or set as needed)
+        const img = ((row + col) % 2 === 0) ? handleImages[0] : handleImages[1];
+        const alt = ((row + col) % 2 === 0) ? 'Horizontal' : 'Vertical';
+        handles.push({ x, y, img, alt });
+      }
+    }
+    // Center and scale the game container to fit the viewport
+    function resizeGame() {
+      const container = document.getElementById('game-container');
+      const scale = Math.min(window.innerWidth / FRIDGE_WIDTH, window.innerHeight / FRIDGE_HEIGHT);
+      container.style.transform = `scale(${scale})`;
+      const left = (window.innerWidth - FRIDGE_WIDTH * scale) / 2;
+      const top = (window.innerHeight - FRIDGE_HEIGHT * scale) / 2;
+      container.style.left = `${left}px`;
+      container.style.top = `${top}px`;
+    }
+    // Render lights
+    const container = document.getElementById('game-container');
+    lights.forEach(light => {
+      const el = document.createElement('img');
+      el.src = light.img;
+      el.alt = light.alt + ' Light';
+      el.className = 'light';
+      el.style.left = `${light.x - 111 / 2}px`;
+      el.style.top = `${light.y - 111 / 2}px`;
+      el.draggable = false;
+      container.appendChild(el);
+    });
+    // Render handles
+    handles.forEach(handle => {
+      const el = document.createElement('img');
+      el.src = handle.img;
+      el.alt = handle.alt + ' Handle';
+      el.className = 'handle';
+      el.style.left = `${handle.x - 110 / 2}px`;
+      el.style.top = `${handle.y - 110 / 2}px`;
+      el.draggable = false;
+      container.appendChild(el);
+    });
+    // Prevent scrolling on mobile
+    document.body.addEventListener('touchmove', function(e) { e.preventDefault(); }, { passive: false });
+    
+    // Set up resize listener and initial sizing
+    window.addEventListener('resize', resizeGame);
+    resizeGame();
+  </script>
+</body>
+</html> 
