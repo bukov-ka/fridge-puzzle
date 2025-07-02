@@ -337,26 +337,31 @@ class FridgeGame {
    * Start the light blinking animation
    */
   startLightBlinking(colors) {
-    const intervals = [];
-    
-    this.gameState.lightElements.forEach((light) => {
-      light.classList.add('blinking');
-      
-      // Start each light with a random color immediately
-      const initialColor = colors[Math.floor(Math.random() * colors.length)];
-      light.src = initialColor;
-      
-      // Give each light its own independent timer with slightly different intervals
-      const randomInterval = 600 + Math.random() * 400; // Between 600-1000ms
-      const interval = setInterval(() => {
-        const randomColor = colors[Math.floor(Math.random() * colors.length)];
-        light.src = randomColor;
-      }, randomInterval);
-      
-      intervals.push(interval);
+    /*
+      Implement a running-light effect where the colours scroll across the four
+      lamps in the fixed sequence provided by `colors` (Red → Green → Blue →
+      Yellow).
+    */
+
+    // Apply the initial colour layout R-G-B-Y (or whatever sequence is passed)
+    this.gameState.lightElements.forEach((light, idx) => {
+      light.src = colors[idx % colors.length];
     });
-    
-    return intervals;
+
+    // Rotate colours across the lights at a constant interval
+    const intervalDuration = 300; // milliseconds – tune for desired speed
+    let offset = 0;
+
+    const interval = setInterval(() => {
+      offset = (offset + 1) % colors.length;
+      this.gameState.lightElements.forEach((light, idx) => {
+        const colourIndex = (idx + offset) % colors.length;
+        light.src = colors[colourIndex];
+      });
+    }, intervalDuration);
+
+    // Return as array for compatibility with stopLightBlinking()
+    return [interval];
   }
   
   /**
@@ -366,7 +371,6 @@ class FridgeGame {
     intervals.forEach(interval => clearInterval(interval));
     
     this.gameState.lightElements.forEach(light => {
-      light.classList.remove('blinking');
       light.src = GAME_CONFIG.IMAGES.LIGHT_GREEN; // Set all to green
     });
   }
