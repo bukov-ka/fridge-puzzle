@@ -165,8 +165,21 @@ class FridgeGame {
     element.src = GAME_CONFIG.IMAGES.LIGHT_RED; // Start with red
     element.alt = `Light ${index + 1}`;
     element.className = 'light';
-    element.style.left = `${position.x - GAME_CONFIG.LIGHT_SIZE / 2}px`;
-    element.style.top = `${position.y - GAME_CONFIG.LIGHT_SIZE / 2}px`;
+
+    /*
+      Convert absolute fridge-space pixels → % so they scale automatically with
+      the responsive fridge size. We keep the coordinate referring to the
+      *centre* and rely on translate(-50%,-50%) to centre the image.
+    */
+    const leftPercent = (position.x / GAME_CONFIG.FRIDGE_WIDTH) * 100;
+    const topPercent  = (position.y / GAME_CONFIG.FRIDGE_HEIGHT) * 100;
+    const sizePercent = (GAME_CONFIG.LIGHT_SIZE / GAME_CONFIG.FRIDGE_WIDTH) * 100;
+
+    element.style.left = `${leftPercent}%`;
+    element.style.top  = `${topPercent}%`;
+    element.style.width = `${sizePercent}%`;
+    element.style.height = 'auto';
+    element.style.transform = 'translate(-50%, -50%)';
     element.draggable = false;
     return element;
   }
@@ -195,8 +208,17 @@ class FridgeGame {
     element.src = isHorizontal ? GAME_CONFIG.IMAGES.HANDLE_HORIZONTAL : GAME_CONFIG.IMAGES.HANDLE_VERTICAL;
     element.alt = `Handle ${row},${col}`;
     element.className = 'handle';
-    element.style.left = `${position.x - GAME_CONFIG.HANDLE_SIZE / 2}px`;
-    element.style.top = `${position.y - GAME_CONFIG.HANDLE_SIZE / 2}px`;
+
+    const leftPercent = (position.x / GAME_CONFIG.FRIDGE_WIDTH) * 100;
+    const topPercent  = (position.y / GAME_CONFIG.FRIDGE_HEIGHT) * 100;
+    const sizePercent = (GAME_CONFIG.HANDLE_SIZE / GAME_CONFIG.FRIDGE_WIDTH) * 100;
+
+    element.style.left = `${leftPercent}%`;
+    element.style.top  = `${topPercent}%`;
+    element.style.width = `${sizePercent}%`;
+    element.style.height = 'auto';
+    element.style.transform = 'translate(-50%, -50%)';
+
     element.draggable = false;
     element.dataset.row = row;
     element.dataset.col = col;
@@ -384,23 +406,11 @@ class FridgeGame {
    * Center and scale the game container to fit the viewport
    */
   resizeGame() {
-    // Adjust body dimensions to the currently visible viewport. This helps avoid
-    // cases where mobile browsers report 100vh larger than the real space due to
-    // URL / status bars and prevents the game from being clipped.
+    /* No scale transform needed any more because CSS handles responsive size.
+       We only ensure the body keeps up with dynamic viewport height on mobile.
+    */
     document.body.style.height = `${window.innerHeight}px`;
     document.body.style.width  = `${window.innerWidth}px`;
-    const scale = Math.min(
-      window.innerWidth / GAME_CONFIG.FRIDGE_WIDTH,
-      window.innerHeight / GAME_CONFIG.FRIDGE_HEIGHT
-    );
-    
-    this.container.style.transform = `scale(${scale})`;
-    
-    const left = (window.innerWidth - GAME_CONFIG.FRIDGE_WIDTH * scale) / 2;
-    const top = (window.innerHeight - GAME_CONFIG.FRIDGE_HEIGHT * scale) / 2;
-    
-    this.container.style.left = `${left}px`;
-    this.container.style.top = `${top}px`;
   }
 }
 
