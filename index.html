@@ -129,8 +129,12 @@
     // Prevent scrolling on mobile
     document.body.addEventListener('touchmove', function(e) { e.preventDefault(); }, { passive: false });
     
-    // Set up resize listener and initial sizing
+    // Set up resize and orientation change listeners
     window.addEventListener('resize', resizeGame);
+    window.addEventListener('orientationchange', function() {
+      // Delay slightly to allow the viewport to update after rotation
+      setTimeout(resizeGame, 100);
+    });
     resizeGame();
   </script>
 </body>
