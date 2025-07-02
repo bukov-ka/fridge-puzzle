@@ -384,6 +384,11 @@ class FridgeGame {
    * Center and scale the game container to fit the viewport
    */
   resizeGame() {
+    // Adjust body dimensions to the currently visible viewport. This helps avoid
+    // cases where mobile browsers report 100vh larger than the real space due to
+    // URL / status bars and prevents the game from being clipped.
+    document.body.style.height = `${window.innerHeight}px`;
+    document.body.style.width  = `${window.innerWidth}px`;
     const scale = Math.min(
       window.innerWidth / GAME_CONFIG.FRIDGE_WIDTH,
       window.innerHeight / GAME_CONFIG.FRIDGE_HEIGHT

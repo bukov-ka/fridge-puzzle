@@ -7,7 +7,9 @@ html, body {
 
 body {
   width: 100vw;
-  height: 100vh;
+  /* Match the visible viewport height instead of the full device height (Mobile Safari/Chrome) */
+  height: 100%;              /* Fall-back for older browsers */
+  min-height: 100dvh;        /* Modern browsers: dynamic viewport height */
   box-sizing: border-box;
   background: #222;
   display: flex;
