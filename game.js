@@ -10,7 +10,7 @@ const GAME_CONFIG = {
   HANDLE_SIZE: 110,
   LIGHT_SIZE: 111,
   SHUFFLE_MOVES: 16,
-  WIN_ANIMATION_DURATION: 3000,
+  WIN_ANIMATION_DURATION: 5000,
   
   // Asset paths
   IMAGES: {
@@ -319,6 +319,10 @@ class FridgeGame {
     
     this.gameState.lightElements.forEach((light) => {
       light.classList.add('blinking');
+      
+      // Start each light with a random color immediately
+      const initialColor = colors[Math.floor(Math.random() * colors.length)];
+      light.src = initialColor;
       
       // Give each light its own independent timer with slightly different intervals
       const randomInterval = 600 + Math.random() * 400; // Between 600-1000ms
