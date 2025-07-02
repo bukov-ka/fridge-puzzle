@@ -19,3 +19,8 @@ The lights coordinates for the top panel (coordinates of the center of the light
 The 4x4 top-left handle center coordinate is: (311,666)
 The 4x4 bottom-right handle center coordinate is: (589,1030)
 
+Game logic:
+- When the user clicks any handle the orientation changed and all the handles in the corresponding column and row are rotated as well;
+- If a column has only horizontal handles the corresponding light is green, otherwise it is red. The light shows if the user was able to turn all the handles in the column horizontally.
+- When all the handles are horizontal the winning sequence is activated: the lights started blinking with all the colors (yellow, red, blue, green) for 3 seconds and then a modal is displayed with the label "Congratulations! You opened the fridge!" and a button "OK" to restart a game.
+- At the start of the game shuffle is performed. Initially all the handles are horizontal and then 16 random handle clicks are performed and the corresponding verticals and horizontals are rotated.

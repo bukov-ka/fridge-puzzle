@@ -41,18 +41,69 @@
     .light, .handle {
       position: absolute;
       z-index: 2;
-      pointer-events: none;
       user-select: none;
     }
     .light {
       width: 111px;
       height: 111px;
+      pointer-events: none;
     }
     .handle {
       width: 110px;
       height: 110px;
+      cursor: pointer;
+      pointer-events: auto;
+    }
+    .handle:hover {
+      filter: brightness(1.2);
     }
 
+    /* Modal styles */
+    .modal {
+      display: none;
+      position: fixed;
+      z-index: 1000;
+      left: 0;
+      top: 0;
+      width: 100%;
+      height: 100%;
+      background-color: rgba(0,0,0,0.5);
+    }
+    .modal-content {
+      background-color: #fefefe;
+      margin: 15% auto;
+      padding: 20px;
+      border: none;
+      border-radius: 10px;
+      width: 300px;
+      text-align: center;
+      font-family: Arial, sans-serif;
+    }
+    .modal h2 {
+      color: #333;
+      margin-top: 0;
+    }
+    .modal button {
+      background-color: #4CAF50;
+      color: white;
+      padding: 10px 20px;
+      border: none;
+      border-radius: 5px;
+      cursor: pointer;
+      font-size: 16px;
+    }
+    .modal button:hover {
+      background-color: #45a049;
+    }
+
+    /* Blinking animation */
+    @keyframes blink {
+      0%, 50% { opacity: 1; }
+      25%, 75% { opacity: 0.3; }
+    }
+    .blinking {
+      animation: blink 0.5s infinite;
+    }
   </style>
 </head>
 <body>
@@ -60,39 +111,272 @@
     <img id="fridge-bg" src="images/fridge.png" alt="Fridge" draggable="false">
     <!-- Lights and handles will be injected by JS -->
   </div>
+
+  <!-- Win modal -->
+  <div id="win-modal" class="modal">
+    <div class="modal-content">
+      <h2>Congratulations!</h2>
+      <p>You opened the fridge!</p>
+      <button onclick="restartGame()">OK</button>
+    </div>
+  </div>
+
   <script>
     // Fridge image size
     const FRIDGE_WIDTH = 1024;
     const FRIDGE_HEIGHT = 1536;
+
     // Light positions (center coordinates)
-    const lights = [
-      { x: 323, y: 484+5, img: 'images/light_red.png', alt: 'Red' },
-      { x: 413, y: 483+3, img: 'images/light_yellow.png', alt: 'Yellow' },
-      { x: 503, y: 482+1, img: 'images/light_green.png', alt: 'Green' },
-      { x: 594, y: 481, img: 'images/light_blue.png', alt: 'Blue' },
+    const lightPositions = [
+      { x: 323, y: 484+5 },
+      { x: 413, y: 483+3 },
+      { x: 503, y: 482+1 },
+      { x: 594, y: 481 },
     ];
+
+    // Light colors for different states
+    const lightColors = {
+      red: 'images/light_red.png',
+      yellow: 'images/light_yellow.png',
+      green: 'images/light_green.png',
+      blue: 'images/light_blue.png'
+    };
+
     // Handles grid (4x4)
     const HANDLE_SIZE = 110; // px
-    const handleImages = [
-      'images/tap_horizontal.png',
-      'images/tap_vertical.png',
-    ];
+    const handleImages = {
+      horizontal: 'images/tap_horizontal.png',
+      vertical: 'images/tap_vertical.png',
+    };
+
     // Top-left and bottom-right handle centers
     const HANDLE_TOPLEFT = { x: 311, y: 666 };
     const HANDLE_BOTTOMRIGHT = { x: 589, y: 1030 };
+
+    // Game state
+    let gameState = {
+      handles: [], // 4x4 grid, true = horizontal, false = vertical
+      lightElements: [], // DOM elements for lights
+      handleElements: [], // DOM elements for handles
+      isWinning: false
+    };
+
+    // Initialize game state
+    function initGame() {
+      // Initialize handles (all horizontal initially)
+      gameState.handles = [];
+      for (let row = 0; row < 4; row++) {
+        gameState.handles[row] = [];
+        for (let col = 0; col < 4; col++) {
+          gameState.handles[row][col] = true; // true = horizontal
+        }
+      }
+      
+      // Clear existing elements
+      const container = document.getElementById('game-container');
+      const existingLights = container.querySelectorAll('.light');
+      const existingHandles = container.querySelectorAll('.handle');
+      existingLights.forEach(el => el.remove());
+      existingHandles.forEach(el => el.remove());
+      
+      gameState.lightElements = [];
+      gameState.handleElements = [];
+      gameState.isWinning = false;
+
+      renderGame();
+      shuffleGame();
+      updateLights();
+    }
+
     // Calculate handle positions
-    const handles = [];
-    for (let row = 0; row < 4; row++) {
+    function getHandlePositions() {
+      const positions = [];
+      for (let row = 0; row < 4; row++) {
+        for (let col = 0; col < 4; col++) {
+          // Linear interpolation between top-left and bottom-right
+          const x = HANDLE_TOPLEFT.x + (HANDLE_BOTTOMRIGHT.x - HANDLE_TOPLEFT.x) * (col / 3);
+          const y = HANDLE_TOPLEFT.y + (HANDLE_BOTTOMRIGHT.y - HANDLE_TOPLEFT.y) * (row / 3);
+          positions.push({ x, y, row, col });
+        }
+      }
+      return positions;
+    }
+
+    // Render lights and handles
+    function renderGame() {
+      const container = document.getElementById('game-container');
+      
+      // Render lights
+      lightPositions.forEach((pos, index) => {
+        const el = document.createElement('img');
+        el.src = lightColors.red; // Start with red
+        el.alt = `Light ${index + 1}`;
+        el.className = 'light';
+        el.style.left = `${pos.x - 111 / 2}px`;
+        el.style.top = `${pos.y - 111 / 2}px`;
+        el.draggable = false;
+        container.appendChild(el);
+        gameState.lightElements.push(el);
+      });
+
+      // Render handles
+      const handlePositions = getHandlePositions();
+      handlePositions.forEach((pos, index) => {
+        const row = pos.row;
+        const col = pos.col;
+        const isHorizontal = gameState.handles[row][col];
+        
+        const el = document.createElement('img');
+        el.src = isHorizontal ? handleImages.horizontal : handleImages.vertical;
+        el.alt = `Handle ${row},${col}`;
+        el.className = 'handle';
+        el.style.left = `${pos.x - 110 / 2}px`;
+        el.style.top = `${pos.y - 110 / 2}px`;
+        el.draggable = false;
+        el.dataset.row = row;
+        el.dataset.col = col;
+        el.addEventListener('click', () => handleClick(row, col));
+        container.appendChild(el);
+        gameState.handleElements.push(el);
+      });
+    }
+
+    // Handle click logic
+    function handleClick(clickedRow, clickedCol) {
+      if (gameState.isWinning) return; // Don't allow clicks during winning sequence
+
+      // Toggle the clicked handle
+      gameState.handles[clickedRow][clickedCol] = !gameState.handles[clickedRow][clickedCol];
+
+      // Toggle all handles in the same row
       for (let col = 0; col < 4; col++) {
-        // Linear interpolation between top-left and bottom-right
-        const x = HANDLE_TOPLEFT.x + (HANDLE_BOTTOMRIGHT.x - HANDLE_TOPLEFT.x) * (col / 3);
-        const y = HANDLE_TOPLEFT.y + (HANDLE_BOTTOMRIGHT.y - HANDLE_TOPLEFT.y) * (row / 3);
-        // Alternate handle orientation for demo (can be randomized or set as needed)
-        const img = ((row + col) % 2 === 0) ? handleImages[0] : handleImages[1];
-        const alt = ((row + col) % 2 === 0) ? 'Horizontal' : 'Vertical';
-        handles.push({ x, y, img, alt });
+        if (col !== clickedCol) {
+          gameState.handles[clickedRow][col] = !gameState.handles[clickedRow][col];
+        }
+      }
+
+      // Toggle all handles in the same column
+      for (let row = 0; row < 4; row++) {
+        if (row !== clickedRow) {
+          gameState.handles[row][clickedCol] = !gameState.handles[row][clickedCol];
+        }
+      }
+
+      updateHandleImages();
+      updateLights();
+      checkWinCondition();
+    }
+
+    // Update handle images based on state
+    function updateHandleImages() {
+      gameState.handleElements.forEach((el, index) => {
+        const row = parseInt(el.dataset.row);
+        const col = parseInt(el.dataset.col);
+        const isHorizontal = gameState.handles[row][col];
+        el.src = isHorizontal ? handleImages.horizontal : handleImages.vertical;
+      });
+    }
+
+    // Update light colors based on column states
+    function updateLights() {
+      for (let col = 0; col < 4; col++) {
+        let allHorizontal = true;
+        for (let row = 0; row < 4; row++) {
+          if (!gameState.handles[row][col]) {
+            allHorizontal = false;
+            break;
+          }
+        }
+        
+        const lightElement = gameState.lightElements[col];
+        lightElement.src = allHorizontal ? lightColors.green : lightColors.red;
       }
     }
+
+    // Check if all handles are horizontal (win condition)
+    function checkWinCondition() {
+      let allHorizontal = true;
+      for (let row = 0; row < 4; row++) {
+        for (let col = 0; col < 4; col++) {
+          if (!gameState.handles[row][col]) {
+            allHorizontal = false;
+            break;
+          }
+        }
+        if (!allHorizontal) break;
+      }
+
+      if (allHorizontal) {
+        triggerWinSequence();
+      }
+    }
+
+    // Trigger winning sequence
+    function triggerWinSequence() {
+      gameState.isWinning = true;
+      
+      // Start blinking lights with different colors
+      const colors = [lightColors.yellow, lightColors.red, lightColors.blue, lightColors.green];
+      let colorIndex = 0;
+      
+      gameState.lightElements.forEach(light => {
+        light.classList.add('blinking');
+      });
+
+      const blinkInterval = setInterval(() => {
+        gameState.lightElements.forEach(light => {
+          light.src = colors[colorIndex % colors.length];
+        });
+        colorIndex++;
+      }, 250);
+
+      // Stop blinking after 3 seconds and show modal
+      setTimeout(() => {
+        clearInterval(blinkInterval);
+        gameState.lightElements.forEach(light => {
+          light.classList.remove('blinking');
+          light.src = lightColors.green; // Set all to green
+        });
+        
+        // Show win modal
+        document.getElementById('win-modal').style.display = 'block';
+      }, 3000);
+    }
+
+    // Shuffle game by performing 16 random handle clicks
+    function shuffleGame() {
+      for (let i = 0; i < 16; i++) {
+        const randomRow = Math.floor(Math.random() * 4);
+        const randomCol = Math.floor(Math.random() * 4);
+        
+        // Perform the same logic as handleClick but without updating visuals
+        gameState.handles[randomRow][randomCol] = !gameState.handles[randomRow][randomCol];
+        
+        // Toggle all handles in the same row
+        for (let col = 0; col < 4; col++) {
+          if (col !== randomCol) {
+            gameState.handles[randomRow][col] = !gameState.handles[randomRow][col];
+          }
+        }
+        
+        // Toggle all handles in the same column
+        for (let row = 0; row < 4; row++) {
+          if (row !== randomRow) {
+            gameState.handles[row][randomCol] = !gameState.handles[row][randomCol];
+          }
+        }
+      }
+      
+      // Update visuals after shuffling
+      updateHandleImages();
+    }
+
+    // Restart game
+    function restartGame() {
+      document.getElementById('win-modal').style.display = 'none';
+      initGame();
+    }
+
     // Center and scale the game container to fit the viewport
     function resizeGame() {
       const container = document.getElementById('game-container');
@@ -103,29 +387,7 @@
       container.style.left = `${left}px`;
       container.style.top = `${top}px`;
     }
-    // Render lights
-    const container = document.getElementById('game-container');
-    lights.forEach(light => {
-      const el = document.createElement('img');
-      el.src = light.img;
-      el.alt = light.alt + ' Light';
-      el.className = 'light';
-      el.style.left = `${light.x - 111 / 2}px`;
-      el.style.top = `${light.y - 111 / 2}px`;
-      el.draggable = false;
-      container.appendChild(el);
-    });
-    // Render handles
-    handles.forEach(handle => {
-      const el = document.createElement('img');
-      el.src = handle.img;
-      el.alt = handle.alt + ' Handle';
-      el.className = 'handle';
-      el.style.left = `${handle.x - 110 / 2}px`;
-      el.style.top = `${handle.y - 110 / 2}px`;
-      el.draggable = false;
-      container.appendChild(el);
-    });
+
     // Prevent scrolling on mobile
     document.body.addEventListener('touchmove', function(e) { e.preventDefault(); }, { passive: false });
     
@@ -135,7 +397,12 @@
       // Delay slightly to allow the viewport to update after rotation
       setTimeout(resizeGame, 100);
     });
-    resizeGame();
+
+    // Initialize game when page loads
+    window.addEventListener('load', () => {
+      resizeGame();
+      initGame();
+    });
   </script>
 </body>
 </html> 
